@@ -28,6 +28,10 @@ import org.slf4j.LoggerFactory;
 /**
  * A module definition.
  */
+
+/**
+ * 模块定义，实现了模块提供者持有器的接口，可以通过provider得到模块服务持有器
+ */
 public abstract class ModuleDefine implements ModuleProviderHolder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ModuleDefine.class);
@@ -55,24 +59,27 @@ public abstract class ModuleDefine implements ModuleProviderHolder {
 
     /**
      * Run the prepare stage for the module, including finding all potential providers, and asking them to prepare.
-     *
+     * 为模块运行准备阶段，包括查找所有的潜在提供者，要求他们去准备
      * @param moduleManager of this module
      * @param configuration of this module
      * @throws ProviderNotFoundException when even don't find a single one providers.
      */
     void prepare(ModuleManager moduleManager, ApplicationConfiguration.ModuleConfiguration configuration,
         ServiceLoader<ModuleProvider> moduleProviderLoader) throws ProviderNotFoundException, ServiceNotProvidedException, ModuleConfigException, ModuleStartException {
+        // 这个遍历仅仅是传入进来 确认是不是当前配置的模块提供者
         for (ModuleProvider provider : moduleProviderLoader) {
             if (!configuration.has(provider.name())) {
                 continue;
             }
 
             if (provider.module().equals(getClass())) {
+                // 如果还未初始化就初始化
                 if (loadedProvider == null) {
                     loadedProvider = provider;
                     loadedProvider.setManager(moduleManager);
                     loadedProvider.setModuleDefine(this);
                 } else {
+                    // 重复初始化会报错
                     throw new DuplicateProviderException(this.name() + " module has one " + loadedProvider.name() + "[" + loadedProvider
                         .getClass()
                         .getName() + "] provider already, " + provider.name() + "[" + provider.getClass()
@@ -81,18 +88,23 @@ public abstract class ModuleDefine implements ModuleProviderHolder {
             }
 
         }
-
+        // 如果提供者没找到，但是方法传入时是找到模块定义的，所以会报错
         if (loadedProvider == null) {
             throw new ProviderNotFoundException(this.name() + " module no provider found.");
         }
 
         LOGGER.info("Prepare the {} provider in {} module.", loadedProvider.name(), this.name());
         try {
+            // copy属性，这个方法的作用就是把应用配置中的属性设置到 模块自己创建的配置bean里
+            // loadedProvider.createConfigBeanIfAbsent() 如果不存在的话，创建一个配置bean，是提供给各个模块自己复写的方法
+            // 以集群实现nacos提供者为例子，它创建的配置bean就是org.apache.skywalking.oap.server.cluster.plugin.nacos.ClusterModuleNacosConfig
+            // 一般配置类都会继承ModuleConfig
             copyProperties(loadedProvider.createConfigBeanIfAbsent(), configuration.getProviderConfiguration(loadedProvider
                 .name()), this.name(), loadedProvider.name());
         } catch (IllegalAccessException e) {
             throw new ModuleConfigException(this.name() + " module config transport to config bean failure.", e);
         }
+        // 准备阶段开始
         loadedProvider.prepare();
     }
 

@@ -21,7 +21,10 @@ package org.apache.skywalking.oap.server.core.cluster;
 import java.util.List;
 import org.apache.skywalking.oap.server.library.module.Service;
 
+/**
+ * cluster模块下定义的一个服务 ： 集群节点查询服务
+ */
 public interface ClusterNodesQuery extends Service {
-
+    // 查询远端的节点，返回远端的实例
     List<RemoteInstance> queryRemoteNodes();
 }

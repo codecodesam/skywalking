@@ -34,9 +34,14 @@ import org.apache.skywalking.oap.server.library.module.ModuleProvider;
 import org.apache.skywalking.oap.server.library.module.ModuleStartException;
 import org.apache.skywalking.oap.server.library.module.ServiceNotProvidedException;
 
+/**
+ * 集群模块 nacos提供者
+ */
 public class ClusterModuleNacosProvider extends ModuleProvider {
 
     private final ClusterModuleNacosConfig config;
+    // nacos命名服务的api接口
+    // 由下面prepare负责初始化
     private NamingService namingService;
 
     public ClusterModuleNacosProvider() {
@@ -59,6 +64,7 @@ public class ClusterModuleNacosProvider extends ModuleProvider {
         return config;
     }
 
+    // 以集群发现实现nacos相关的准备工作为例子来学习prepare
     @Override
     public void prepare() throws ServiceNotProvidedException, ModuleStartException {
         try {
@@ -79,20 +85,27 @@ public class ClusterModuleNacosProvider extends ModuleProvider {
         } catch (Exception e) {
             throw new ModuleStartException(e.getMessage(), e);
         }
+        // 将配置，命名服务，当前模块管理器传入，创建一个NacosCoordinator实例
         NacosCoordinator coordinator = new NacosCoordinator(getManager(), namingService, config);
+        // 注册 集群注册的实现
         this.registerServiceImplementation(ClusterRegister.class, coordinator);
+        // 注册 集群发现的实现
         this.registerServiceImplementation(ClusterNodesQuery.class, coordinator);
     }
 
+    // 集群注册模块，nacos的实现没有做什么处理
     @Override
     public void start() throws ServiceNotProvidedException {
     }
 
+    // 所有的provider都完成了start，boostrap flow对provides的回调工作
     @Override
     public void notifyAfterCompleted() throws ServiceNotProvidedException {
 
     }
 
+    // 依赖核心模块
+    // 主要是provider在进行start的一个先后顺序
     @Override
     public String[] requiredModules() {
         return new String[] {CoreModule.NAME};

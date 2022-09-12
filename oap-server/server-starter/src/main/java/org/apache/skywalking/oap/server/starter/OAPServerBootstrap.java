@@ -34,15 +34,22 @@ import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 @Slf4j
 public class OAPServerBootstrap {
     public static void start() {
+        // 获取启动模式
         String mode = System.getProperty("mode");
+        // 设置启动模式
+        // 启动模式分初始化和非初始化
+        // 初始化模式会在后面进行System.exit
         RunningMode.setMode(mode);
-
+        // 创建一个应用配置加载器
         ApplicationConfigLoader configLoader = new ApplicationConfigLoader();
+        // 创建一个模块管理器
         ModuleManager manager = new ModuleManager();
         try {
+            // 加载配置
             ApplicationConfiguration applicationConfiguration = configLoader.load();
+            // 初始化模块管理器
             manager.init(applicationConfiguration);
-
+            // 做一个指标收集
             manager.find(TelemetryModule.NAME)
                    .provider()
                    .getService(MetricsCreator.class)
@@ -52,6 +59,7 @@ public class OAPServerBootstrap {
 
             log.info("Version of OAP: {}", Version.CURRENT);
 
+            // 如果是初始化模式就退出了
             if (RunningMode.isInitMode()) {
                 log.info("OAP starts up in init mode successfully, exit now...");
                 System.exit(0);

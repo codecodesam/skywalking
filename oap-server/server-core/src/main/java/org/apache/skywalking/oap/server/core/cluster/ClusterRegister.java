@@ -20,6 +20,9 @@ package org.apache.skywalking.oap.server.core.cluster;
 
 import org.apache.skywalking.oap.server.library.module.Service;
 
+/**
+ * cluster模块下的一个服务：注册到远端
+ */
 public interface ClusterRegister extends Service {
 
     void registerRemote(RemoteInstance remoteInstance) throws ServiceRegisterException;

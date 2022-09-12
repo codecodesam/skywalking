@@ -23,7 +23,10 @@ import org.apache.skywalking.oap.server.core.remote.client.Address;
 
 @Getter
 public class RemoteInstance implements Comparable<RemoteInstance> {
-
+    // 地址
+    // 1. host
+    // 2. port
+    // 3. 是否是当前节点
     private final Address address;
 
     public RemoteInstance(Address address) {

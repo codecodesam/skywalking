@@ -59,6 +59,7 @@ public abstract class ModuleProvider implements ModuleServiceHolder {
     /**
      * In prepare stage, the moduleDefine should initialize things which are irrelative other modules.
      */
+    // 在准备阶段，模块定义类应该初始化一些东西，这些东西必须无关其他模块，不能有依赖
     public abstract void prepare() throws ServiceNotProvidedException, ModuleStartException;
 
     /**
@@ -79,10 +80,12 @@ public abstract class ModuleProvider implements ModuleServiceHolder {
     /**
      * Register an implementation for the service of this moduleDefine provider.
      */
+    // 注册一个实现类
     @Override
     public final void registerServiceImplementation(Class<? extends Service> serviceType,
         Service service) throws ServiceNotProvidedException {
         if (serviceType.isInstance(service)) {
+            // 所有的服务实现必须是Service的实例
             this.services.put(serviceType, service);
         } else {
             throw new ServiceNotProvidedException(serviceType + " is not implemented by " + service);

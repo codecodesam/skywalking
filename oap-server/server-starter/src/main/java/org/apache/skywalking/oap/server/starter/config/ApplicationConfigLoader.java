@@ -40,15 +40,21 @@ import org.yaml.snakeyaml.Yaml;
  */
 @Slf4j
 public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfiguration> {
+    // -表示该配置忽略
     private static final String DISABLE_SELECTOR = "-";
+    // 每个模块都有一个选择器
     private static final String SELECTOR = "selector";
 
     private final Yaml yaml = new Yaml();
 
     @Override
     public ApplicationConfiguration load() throws ConfigFileNotFoundException {
+        // 创建应用配置
+        // 这个应用配置本质上就是把所有selector聚合在一起
         ApplicationConfiguration configuration = new ApplicationConfiguration();
+        // 记载配置
         this.loadConfig(configuration);
+        // 通过环境变量覆盖配置
         this.overrideConfigBySystemEnv(configuration);
         return configuration;
     }
@@ -56,28 +62,40 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
     @SuppressWarnings("unchecked")
     private void loadConfig(ApplicationConfiguration configuration) throws ConfigFileNotFoundException {
         try {
+            // 读取application.yml
             Reader applicationReader = ResourceUtils.read("application.yml");
             Map<String, Map<String, Object>> moduleConfig = yaml.loadAs(applicationReader, Map.class);
             if (CollectionUtils.isNotEmpty(moduleConfig)) {
+                // 遍历配置
+                // 从这一步得到的是一个筛选完毕的配置文件
+                // 如果配置有问题的话，里面已经报错了
                 selectConfig(moduleConfig);
+                // 遍历
                 moduleConfig.forEach((moduleName, providerConfig) -> {
                     if (providerConfig.size() > 0) {
                         log.info("Get a module define from application.yml, module name: {}", moduleName);
+                        // 添加模块
+                        // 跟上面说的一样 就是创建一个name对应module配置
                         ApplicationConfiguration.ModuleConfiguration moduleConfiguration = configuration.addModule(
                             moduleName);
+                        // 这里是遍历模块和它的属性
                         providerConfig.forEach((providerName, config) -> {
                             log.info(
                                 "Get a provider define belong to {} module, provider name: {}", moduleName,
                                 providerName
                             );
+                            // providerName就是模块名，比如nacos
+                            // config是一个key value集合
                             final Map<String, ?> propertiesConfig = (Map<String, ?>) config;
                             final Properties properties = new Properties();
                             if (propertiesConfig != null) {
+                                // 遍历模块对应的key value属性值
                                 propertiesConfig.forEach((propertyName, propertyValue) -> {
                                     if (propertyValue instanceof Map) {
                                         Properties subProperties = new Properties();
                                         ((Map) propertyValue).forEach((key, value) -> {
                                             subProperties.put(key, value);
+                                            // 其实就是替代${}
                                             replacePropertyAndLog(key, value, subProperties, providerName);
                                         });
                                         properties.put(propertyName, subProperties);
@@ -87,6 +105,7 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
                                     }
                                 });
                             }
+                            // 添加一个提供者配置
                             moduleConfiguration.addProviderConfiguration(providerName, properties);
                         });
                     } else {
@@ -152,19 +171,26 @@ public class ApplicationConfigLoader implements ConfigLoader<ApplicationConfigur
             Map.Entry<String, Map<String, Object>> entry = moduleIterator.next();
             final String moduleName = entry.getKey();
             final Map<String, Object> providerConfig = entry.getValue();
+            // 如果没有含有selector就不是一个需要被加载的配置
             if (!providerConfig.containsKey(SELECTOR)) {
                 continue;
             }
             final String selector = (String) providerConfig.get(SELECTOR);
+            // 通过系统变量去替换${}得到一个确定的字符串
             final String resolvedSelector = PropertyPlaceholderHelper.INSTANCE.replacePlaceholders(
                 selector, System.getProperties()
             );
+            // 一份模块配置里会有很多可选项目
+            // 根据上面得到的选项进行排除其他
             providerConfig.entrySet().removeIf(e -> !resolvedSelector.equals(e.getKey()));
 
+            // 不为空，筛选结束
             if (!providerConfig.isEmpty()) {
                 continue;
             }
-
+            // 如果最后得到为空，代表我的selector并没有存在对应的配置
+            // 如果配置的selector不是-的话，代表你填写是错误的
+            // 既没有对应的配置，又没有忽略加载
             if (!DISABLE_SELECTOR.equals(resolvedSelector)) {
                 throw new ProviderNotFoundException(
                     "no provider found for module " + moduleName + ", " +

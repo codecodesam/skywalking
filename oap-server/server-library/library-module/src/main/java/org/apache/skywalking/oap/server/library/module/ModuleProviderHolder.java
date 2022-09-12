@@ -18,7 +18,15 @@
 
 package org.apache.skywalking.oap.server.library.module;
 
+/**
+ * 模块提供者的持有
+ */
 public interface ModuleProviderHolder {
-
+    /**
+     * 获取模块服务持有
+     * @return
+     * @throws DuplicateProviderException
+     * @throws ProviderNotFoundException
+     */
     ModuleServiceHolder provider() throws DuplicateProviderException, ProviderNotFoundException;
 }

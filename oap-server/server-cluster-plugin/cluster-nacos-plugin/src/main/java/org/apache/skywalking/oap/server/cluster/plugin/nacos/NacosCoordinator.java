@@ -53,22 +53,36 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
         this.config = config;
     }
 
+    /**
+     * 查询远程节点的实现
+     * @return
+     */
     @Override
     public List<RemoteInstance> queryRemoteNodes() {
         List<RemoteInstance> remoteInstances = new ArrayList<>();
         try {
+            // 初始化健康检查
             initHealthChecker();
+            // 命名服务api根据当前服务名，查找实例
+            // com.alibaba.nacos.api.naming.NamingService.selectInstances(java.lang.String, boolean)
+            // true代表健康节点
             List<Instance> instances = namingService.selectInstances(config.getServiceName(), true);
             if (CollectionUtils.isNotEmpty(instances)) {
+                // 遍历实例
                 instances.forEach(instance -> {
+                    // 把ip port传入传入，构造一个address
                     Address address = new Address(instance.getIp(), instance.getPort(), false);
+                    // 判断是否是当前oap节点
+                    // 只要host和port相等，就会被标记为self
                     if (address.equals(selfAddress)) {
                         address.setSelf(true);
                     }
                     remoteInstances.add(new RemoteInstance(address));
                 });
             }
+            // 传入当前远端实例列表，利用OAPNodeChecker判断集群健康状态
             ClusterHealthStatus healthStatus = OAPNodeChecker.isHealth(remoteInstances);
+            // 记录指标
             if (healthStatus.isHealth()) {
                 this.healthChecker.health();
             } else {
@@ -78,32 +92,47 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
             healthChecker.unHealth(e);
             throw new ServiceQueryException(e.getMessage());
         }
+        // 返回列表
         return remoteInstances;
     }
 
+    // 注册到远端
     @Override
     public void registerRemote(RemoteInstance remoteInstance) throws ServiceRegisterException {
+        // 判断是否使用内部地址
+        // 优先使用internalXXX的配置，否则使用grpc的host和port
         if (needUsingInternalAddr()) {
+            // config中配置的internal相关的直接使用
+            // TODO internalXXX配置的作用是什么？
             remoteInstance = new RemoteInstance(new Address(config.getInternalComHost(), config.getInternalComPort(), true));
         }
+        // 获取host
         String host = remoteInstance.getAddress().getHost();
+        // 获取ip
         int port = remoteInstance.getAddress().getPort();
         try {
+            // 初始化健康检查
             initHealthChecker();
+            // 像nacos注册实例
             namingService.registerInstance(config.getServiceName(), host, port);
+            // 上报健康
             healthChecker.health();
         } catch (Throwable e) {
             healthChecker.unHealth(e);
             throw new ServiceRegisterException(e.getMessage());
         }
+        // 讲当前地址类保存起来
         this.selfAddress = remoteInstance.getAddress();
     }
 
+    // 是否使用内部地址
     private boolean needUsingInternalAddr() {
         return !Strings.isNullOrEmpty(config.getInternalComHost()) && config.getInternalComPort() > 0;
     }
 
     private void initHealthChecker() {
+        // 如果健康检查为空，初始化一个HealthCheckMetrics的实例
+        // TODO 初始化健康检查器的作用是什么
         if (healthChecker == null) {
             MetricsCreator metricCreator = manager.find(TelemetryModule.NAME).provider().getService(MetricsCreator.class);
             healthChecker = metricCreator.createHealthCheckerGauge("cluster_nacos", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE);
