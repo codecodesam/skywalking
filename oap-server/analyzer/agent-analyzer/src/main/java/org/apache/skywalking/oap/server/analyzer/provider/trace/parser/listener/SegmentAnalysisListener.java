@@ -73,18 +73,22 @@ public class SegmentAnalysisListener implements FirstAnalysisListener, EntryAnal
 
     @Override
     public void parseFirst(SpanObject span, SegmentObject segmentObject) {
+        // 如果采集状态是忽略  直接返回
         if (sampleStatus.equals(SAMPLE_STATUS.IGNORE)) {
             return;
         }
 
+        // 创建服务名和服务id
         if (StringUtil.isEmpty(serviceId)) {
             serviceName = namingControl.formatServiceName(segmentObject.getService());
+            // 这个服务id其实就是name的base64编码 + "." + 1/0
+            // true代表该服务已经被agent检测到了
             serviceId = IDManager.ServiceID.buildId(
                 serviceName,
                 true
             );
         }
-
+        // 获取时间桶的格式 以秒的方式
         long timeBucket = TimeBucket.getRecordTimeBucket(startTimestamp);
 
         segment.setSegmentId(segmentObject.getTraceSegmentId());
@@ -123,18 +127,30 @@ public class SegmentAnalysisListener implements FirstAnalysisListener, EntryAnal
 
     @Override
     public void parseSegment(SegmentObject segmentObject) {
+        // 把traceId提取出来
         segment.setTraceId(segmentObject.getTraceId());
+        // 获取span列表，对其遍历
         segmentObject.getSpansList().forEach(span -> {
+            // 开始时间戳以span的开始时间为准
             if (startTimestamp == 0 || startTimestamp > span.getStartTime()) {
                 startTimestamp = span.getStartTime();
             }
+            // 结束时间戳也是以span的结束时间为准
             if (span.getEndTime() > endTimestamp) {
                 endTimestamp = span.getEndTime();
             }
+            // 获取当前segment是否失败
+            // 有3种判断方式，分别是span，first，还有entry，默认是span
+            // 状态判断器是由配置来决定agent-analyzer.segmentStatusAnalysisStrategy
             isError = isError || segmentStatusAnalyzer.isError(span);
+            // 把一些tag和value提取出来，用于检索
+            // 具体的配置可以参考core模块下
+            // core.searchableTracesTags: ${SW_SEARCHABLE_TAG_KEYS:http.method,http.status_code,rpc.status_code,db.type,db.instance,mq.queue,mq.topic,mq.broker}
             appendSearchableTags(span);
         });
+        // 当前segment的持续时间
         final long accurateDuration = endTimestamp - startTimestamp;
+        // 防止溢出，大概不可能把
         duration = accurateDuration > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) accurateDuration;
 
         if (sampleStatus.equals(SAMPLE_STATUS.UNKNOWN) || sampleStatus.equals(SAMPLE_STATUS.IGNORE)) {

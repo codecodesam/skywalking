@@ -231,6 +231,8 @@ public class CoreModuleProvider extends ModuleProvider {
         httpServer.initialize();
 
         this.registerServiceImplementation(ConfigService.class, new ConfigService(moduleConfig));
+        // TODO sam
+        // 什么是downsampling
         this.registerServiceImplementation(
             DownSamplingConfigService.class, new DownSamplingConfigService(moduleConfig.getDownsampling()));
 
@@ -321,22 +323,38 @@ public class CoreModuleProvider extends ModuleProvider {
 
     @Override
     public void start() throws ModuleStartException {
+        // 当前grpc加入处理器
         grpcServer.addHandler(new RemoteServiceHandler(getManager()));
         grpcServer.addHandler(new HealthCheckServiceHandler());
+        // 远端客户端管理器start
+        // 里面有个定时任务，后面在剖出来看下
         remoteClientManager.start();
 
         // Disable OAL script has higher priority
         oalEngineLoaderService.load(DisableOALDefine.INSTANCE);
 
         try {
+            // 扫描一些实例类
+            // 接收器
+            // TODO sam
             receiver.scan();
+            // 注解扫描
             annotationScan.scan();
         } catch (IOException | IllegalAccessException | InstantiationException | StorageException e) {
             throw new ModuleStartException(e.getMessage(), e);
         }
-
+        // 创建一个网络地址
+        // host port isSelf，这个isSelf其实就是表示当前注册的节点是自己
+        // 从这里也可以看出 如果我们配置0.0.0.0那么，其实上报上去的就是0.0.0.0
+        // 然后我们再看一下 Address之间是如何比较的，就是通过host.equals(address.host) && port == address.port;
+        // 那么一旦我们使用0.0.0.0配置注册到注册中心，那么我们对实例列表的判断就都是self了，就无法使用集群分布式计算的功能了
         Address gRPCServerInstanceAddress = new Address(moduleConfig.getGRPCHost(), moduleConfig.getGRPCPort(), true);
         TelemetryRelatedContext.INSTANCE.setId(gRPCServerInstanceAddress.toString());
+        // 只有开启了混合模式或者聚合者模式，才需要把当前节点注册到注册中心
+        // org.apache.skywalking.oap.server.core.CoreModuleConfig.Role的代码注释有一些定义
+        // 混合模式和聚合者模式，都是接受数据来自于mixed和Aggregator类型的节点，并且做第二层聚合，然后把数据保存到存储
+        // receiver模式直接对接agent的，receiver接收到数据后做分析和聚合，然后会丢给mixed和aggregator的节点。例外是接受到Record数据，会直接存储到存储引擎
+        // 也就是说receiver不需要被mixed和aggregator节点发现，所以不需要注册到远端
         if (CoreModuleConfig.Role.Mixed.name()
                                        .equalsIgnoreCase(
                                            moduleConfig.getRole())
@@ -344,6 +362,7 @@ public class CoreModuleProvider extends ModuleProvider {
                                                .equalsIgnoreCase(
                                                    moduleConfig.getRole())) {
             RemoteInstance gRPCServerInstance = new RemoteInstance(gRPCServerInstanceAddress);
+            // 获取集群注册的服务，然后注册当前节点到远端注册中心
             this.getManager()
                 .find(ClusterModule.NAME)
                 .provider()

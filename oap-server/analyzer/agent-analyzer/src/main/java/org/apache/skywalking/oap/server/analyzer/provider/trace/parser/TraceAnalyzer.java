@@ -43,12 +43,15 @@ public class TraceAnalyzer {
     private List<AnalysisListener> analysisListeners = new ArrayList<>();
 
     public void doAnalysis(SegmentObject segmentObject) {
+        // 如果当前对象块列表为空的话返回
+        // span是一个块节点的概念，比如一个链路中10跳，那么最少10个span，如果每个链路中callback有2层并且都收集了，
+        // 那么span就是10*2
         if (segmentObject.getSpansList().size() == 0) {
             return;
         }
-
+        // 创建span的监听器
         createSpanListeners();
-
+        // 通知segment监听器
         notifySegmentListener(segmentObject);
 
         segmentObject.getSpansList().forEach(spanObject -> {
@@ -108,7 +111,9 @@ public class TraceAnalyzer {
     }
 
     private void notifySegmentListener(SegmentObject segmentObject) {
+        // 其实就是遍历分析器，做一个前置判断和一个解析
         analysisListeners.forEach(listener -> {
+            // point的类型有5种，Entry, Exit, Local, First, Segment
             if (listener.containsPoint(AnalysisListener.Point.Segment)) {
                 ((SegmentListener) listener).parseSegment(segmentObject);
             }
@@ -116,6 +121,11 @@ public class TraceAnalyzer {
     }
 
     private void createSpanListeners() {
+        // 获取工厂遍历创建
+        // SegmentAnalysisListener.Factory
+        // RPCAnalysisListener.Factory
+        // EndpointDepFromCrossThreadAnalysisListener.Factory
+        // NetworkAddressAliasMappingListener.Factory
         listenerManager.getSpanListenerFactories()
                        .forEach(
                            spanListenerFactory -> analysisListeners.add(

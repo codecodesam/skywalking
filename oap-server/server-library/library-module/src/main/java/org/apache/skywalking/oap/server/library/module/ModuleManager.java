@@ -41,7 +41,7 @@ public class ModuleManager implements ModuleDefineHolder {
         // 获取模块名列表
         String[] moduleNames = applicationConfiguration.moduleList();
         // 获取服务加载器 -- 模块定义
-        // TODO ServiceLoader.load
+        // ServiceLoader.load
         ServiceLoader<ModuleDefine> moduleServiceLoader = ServiceLoader.load(ModuleDefine.class);
         // 获取服务加载器 -- 模块提供者
         ServiceLoader<ModuleProvider> moduleProviderLoader = ServiceLoader.load(ModuleProvider.class);
@@ -69,6 +69,7 @@ public class ModuleManager implements ModuleDefineHolder {
             throw new ModuleNotFoundException(moduleSet.toString() + " missing.");
         }
         // 启动器流转对象
+        // 构造方法中主要是对模块提供者进行排序，检查循环依赖等
         BootstrapFlow bootstrapFlow = new BootstrapFlow(loadedModules);
         // 开始
         bootstrapFlow.start(this);

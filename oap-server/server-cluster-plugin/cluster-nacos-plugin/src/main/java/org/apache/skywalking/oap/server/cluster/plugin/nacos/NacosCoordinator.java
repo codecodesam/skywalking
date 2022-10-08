@@ -103,7 +103,8 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
         // 优先使用internalXXX的配置，否则使用grpc的host和port
         if (needUsingInternalAddr()) {
             // config中配置的internal相关的直接使用
-            // TODO internalXXX配置的作用是什么？
+            // TODO sam
+            // internalXXX配置的作用是什么？
             remoteInstance = new RemoteInstance(new Address(config.getInternalComHost(), config.getInternalComPort(), true));
         }
         // 获取host
@@ -132,7 +133,8 @@ public class NacosCoordinator implements ClusterRegister, ClusterNodesQuery {
 
     private void initHealthChecker() {
         // 如果健康检查为空，初始化一个HealthCheckMetrics的实例
-        // TODO 初始化健康检查器的作用是什么
+        // TODO sam
+        // 初始化健康检查器的作用是什么
         if (healthChecker == null) {
             MetricsCreator metricCreator = manager.find(TelemetryModule.NAME).provider().getService(MetricsCreator.class);
             healthChecker = metricCreator.createHealthCheckerGauge("cluster_nacos", MetricsTag.EMPTY_KEY, MetricsTag.EMPTY_VALUE);

@@ -124,8 +124,9 @@ public class RemoteClientManager implements Service {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.debug("Refresh remote nodes collection.");
             }
-
+            // 查询远方节点
             List<RemoteInstance> instanceList = clusterNodesQuery.queryRemoteNodes();
+            // 去重
             instanceList = distinct(instanceList);
             Collections.sort(instanceList);
 
@@ -192,6 +193,8 @@ public class RemoteClientManager implements Service {
      * @param remoteInstances Remote instance collection by query cluster config.
      */
     private void reBuildRemoteClients(List<RemoteInstance> remoteInstances) {
+        // 下面一堆代码主要是做一下map
+        // 然后用工具类对别得到 哪些是已经存在的，哪些是关闭的，哪些是新的
         final Map<Address, RemoteClientAction> remoteClientCollection =
             this.usingClients.stream()
                              .collect(Collectors.toMap(
@@ -220,6 +223,7 @@ public class RemoteClientManager implements Service {
         unChangeAddresses.forEach(latestRemoteClients::remove);
         remoteClientCollection.putAll(latestRemoteClients);
 
+        // 对新的进行一次connect操作
         final List<RemoteClient> newRemoteClients = new LinkedList<>();
         remoteClientCollection.forEach((address, clientAction) -> {
             switch (clientAction.getAction()) {
@@ -233,6 +237,9 @@ public class RemoteClientManager implements Service {
                     } else {
                         RemoteClient client;
                         client = new GRPCRemoteClient(moduleDefineHolder, address, 1, 3000, remoteTimeout, sslContext);
+                        // 建立了一个channel
+                        // 对应一个处理器 RemoteMessageConsumer
+                        // TODO sam 这一部分估计可以通过消费来看出聚合是做什么的
                         client.connect();
                         newRemoteClients.add(client);
                     }
@@ -243,7 +250,7 @@ public class RemoteClientManager implements Service {
         //for stable ordering for rolling selector
         Collections.sort(newRemoteClients);
         this.usingClients = ImmutableList.copyOf(newRemoteClients);
-
+        // 对旧的执行一次close操作
         remoteClientCollection.values()
                               .stream()
                               .filter(remoteClientAction ->

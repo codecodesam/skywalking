@@ -19,7 +19,7 @@
 package org.apache.skywalking.oap.server.library.module;
 
 /**
- * 模块提供者的持有
+ * 模块提供者的持有器，可以得到 模块定义下所有实现service的类
  */
 public interface ModuleProviderHolder {
     /**

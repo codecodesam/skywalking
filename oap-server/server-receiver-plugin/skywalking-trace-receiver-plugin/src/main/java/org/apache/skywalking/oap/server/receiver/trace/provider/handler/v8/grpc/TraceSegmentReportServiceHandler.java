@@ -34,6 +34,9 @@ import org.apache.skywalking.oap.server.telemetry.api.HistogramMetrics;
 import org.apache.skywalking.oap.server.telemetry.api.MetricsCreator;
 import org.apache.skywalking.oap.server.telemetry.api.MetricsTag;
 
+/**
+ * 处理trace的处理器
+ */
 @Slf4j
 public class TraceSegmentReportServiceHandler extends TraceSegmentReportServiceGrpc.TraceSegmentReportServiceImplBase implements GRPCHandler {
     private HistogramMetrics histogram;
@@ -69,6 +72,7 @@ public class TraceSegmentReportServiceHandler extends TraceSegmentReportServiceG
 
                 HistogramMetrics.Timer timer = histogram.createTimer();
                 try {
+                    // 关键代码节点
                     segmentParserService.send(segment);
                 } catch (Exception e) {
                     errorCounter.inc();
