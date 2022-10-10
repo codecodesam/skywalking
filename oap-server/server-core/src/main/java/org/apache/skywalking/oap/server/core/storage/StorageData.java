@@ -21,9 +21,11 @@ package org.apache.skywalking.oap.server.core.storage;
 /**
  * Any persistent entity should be an implementation of this interface.
  */
+// 需要存储的数据的顶级接口
 public interface StorageData {
     /**
      * @return the unique id used in any storage option.
      */
+    // 要求数据实体类必须返回一个字符串类型的id
     String id();
 }

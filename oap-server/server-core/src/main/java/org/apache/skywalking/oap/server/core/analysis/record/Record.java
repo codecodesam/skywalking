@@ -28,6 +28,8 @@ import org.apache.skywalking.oap.server.core.storage.annotation.Column;
  * Record storage represents the entity have fully and manually entity definition by hard codes. Most of them are
  * original log data or task records. These data needs to persistent without further analysis.
  */
+// 一般都是有硬编码的实体类才需要继承Record
+// 这类数据往往意味着不需要进一步分析，就可以直接持久化
 public abstract class Record implements StorageData {
 
     public static final String TIME_BUCKET = "time_bucket";

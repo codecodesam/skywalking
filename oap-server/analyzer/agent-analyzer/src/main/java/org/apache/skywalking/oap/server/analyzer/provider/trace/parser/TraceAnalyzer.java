@@ -52,13 +52,16 @@ public class TraceAnalyzer {
         // 创建span的监听器
         createSpanListeners();
         // 通知segment监听器
+        // 这一步已经把状态，时间什么的都算好了
         notifySegmentListener(segmentObject);
-
+        // 对一个segment中的span集合做遍历
         segmentObject.getSpansList().forEach(spanObject -> {
+            // 如果spanId是0的话，那就是第一个节点
             if (spanObject.getSpanId() == 0) {
                 notifyFirstListener(spanObject, segmentObject);
             }
-
+            // span的类型判断分支
+            // TODO sam 这个spanType具体的定义是什么
             if (SpanType.Exit.equals(spanObject.getSpanType())) {
                 notifyExitListener(spanObject, segmentObject);
             } else if (SpanType.Entry.equals(spanObject.getSpanType())) {
@@ -70,7 +73,9 @@ public class TraceAnalyzer {
                                                                                           .name());
             }
         });
-
+        // 通知监听器去构建
+        // 主要是让处理完的数据继续往下走而已
+        // 有数据落盘等等
         notifyListenerToBuild();
     }
 
@@ -104,6 +109,7 @@ public class TraceAnalyzer {
 
     private void notifyFirstListener(SpanObject span, SegmentObject segmentObject) {
         analysisListeners.forEach(listener -> {
+            // 这一部分 当前的实现更多是执行一些属性的解析设置而已
             if (listener.containsPoint(AnalysisListener.Point.First)) {
                 ((FirstAnalysisListener) listener).parseFirst(span, segmentObject);
             }

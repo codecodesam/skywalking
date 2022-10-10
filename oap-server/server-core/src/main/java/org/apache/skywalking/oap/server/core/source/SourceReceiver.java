@@ -25,8 +25,11 @@ import org.apache.skywalking.oap.server.library.module.Service;
  * The source receiver implementation delegates to {@link org.apache.skywalking.oap.server.core.analysis.DispatcherManager}
  * in order to forward source to the suitable real {@link org.apache.skywalking.oap.server.core.analysis.SourceDispatcher}.
  */
+// org.apache.skywalking.oap.server.core.source.SourceReceiver
+// 也是core模块定义的一种服务
 public interface SourceReceiver extends Service {
+    // 接收
     void receive(ISource source);
-
+    // 获取分发检测监听器
     DispatcherDetectorListener getDispatcherDetectorListener();
 }

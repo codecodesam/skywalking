@@ -55,8 +55,11 @@ public class DispatcherManager implements DispatcherDetectorListener {
          * So these will/could be possible, the given source doesn't have the dispatcher,
          * when the receiver is open, and oal script doesn't ask for analysis.
          */
+        // 这里注释表示分发器都是oal脚本分析结果生成的？？？？
+        // 先调用source的准备方法
         if (dispatchers != null) {
             source.prepare();
+            // 遍历分发器
             for (SourceDispatcher dispatcher : dispatchers) {
                 dispatcher.dispatch(source);
             }

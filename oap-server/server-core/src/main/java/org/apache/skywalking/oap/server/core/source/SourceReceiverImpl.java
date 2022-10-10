@@ -31,6 +31,8 @@ public class SourceReceiverImpl implements SourceReceiver {
         this.dispatcherManager = new DispatcherManager();
     }
 
+    // 分发管理器去分发
+    // 分发管理器维护者scope为key的一个分发器map
     @Override
     public void receive(ISource source) {
         dispatcherManager.forward(source);
@@ -41,6 +43,9 @@ public class SourceReceiverImpl implements SourceReceiver {
         return getDispatcherManager();
     }
 
+    // 分发器的扫描在core模块start的时候开始了
+    // 直接扫skywalking包下的类，如果是SourceDispatcher一律都要
+    // SourceDispatcher是一个范型接口，范型类被限制为ISource类型，可以得到scope
     public void scan() throws IOException, InstantiationException, IllegalAccessException {
         dispatcherManager.scan();
     }

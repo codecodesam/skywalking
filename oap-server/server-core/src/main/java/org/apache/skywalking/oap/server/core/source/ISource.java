@@ -18,6 +18,10 @@
 
 package org.apache.skywalking.oap.server.core.source;
 
+// 源对象
+// segment也是一种ISource
+// 源有很多定义 org.apache.skywalking.oap.server.core.source.DefaultScopeDefine
+// 可以理解为skywalking收集的数据都是源
 public interface ISource {
     int scope();
 

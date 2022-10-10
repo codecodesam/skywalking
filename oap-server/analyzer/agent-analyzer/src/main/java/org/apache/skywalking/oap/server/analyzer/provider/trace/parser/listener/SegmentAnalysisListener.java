@@ -152,8 +152,18 @@ public class SegmentAnalysisListener implements FirstAnalysisListener, EntryAnal
         final long accurateDuration = endTimestamp - startTimestamp;
         // 防止溢出，大概不可能把
         duration = accurateDuration > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) accurateDuration;
-
+        // 判断是否采样
+        // 不太理解为什么要去判断ignore的状态
         if (sampleStatus.equals(SAMPLE_STATUS.UNKNOWN) || sampleStatus.equals(SAMPLE_STATUS.IGNORE)) {
+            // 这个地方判断的逻辑是：
+            // 对segment的traceId做一次hashCode，然后取模10000
+            // 从segment中提取serviceName，判断配置是否有针对这个服务的一个采样配置
+            // 如果配置不存在，则使用默认的配置，进行判断 isOverDefaultSlowThreshold(duration) || withinDefaultRateRange(sample);主要是判断慢请求和采样率
+            // 如果配置存在，(samplingPolicy.getDuration() != null && isOverSlowThreshold(duration, samplingPolicy.getDuration()))
+            //            || (samplingPolicy.getRate() != null && withinRateRange(sample, samplingPolicy.getRate()))
+            //            // global policy
+            //            || (samplingPolicy.getDuration() == null && isOverDefaultSlowThreshold(duration))
+            //            || (samplingPolicy.getRate() == null && withinDefaultRateRange(sample));
             if (sampler.shouldSample(segmentObject, duration)) {
                 sampleStatus = SAMPLE_STATUS.SAMPLED;
             } else if (isError && forceSampleErrorSegment) {
@@ -177,6 +187,7 @@ public class SegmentAnalysisListener implements FirstAnalysisListener, EntryAnal
 
     @Override
     public void build() {
+        // 如果采样状态是忽略，那就直接返回了
         if (sampleStatus.equals(SAMPLE_STATUS.IGNORE)) {
             if (log.isDebugEnabled()) {
                 log.debug("segment ignored, trace id: {}", segment.getTraceId());
@@ -188,8 +199,9 @@ public class SegmentAnalysisListener implements FirstAnalysisListener, EntryAnal
             log.debug("segment listener build, segment id: {}", segment.getSegmentId());
         }
 
+        // 设置端点id
         segment.setEndpointId(endpointId);
-
+        // 接收器 接收
         sourceReceiver.receive(segment);
         addAutocompleteTags();
     }
