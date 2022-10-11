@@ -27,6 +27,7 @@ public class SegmentDispatcher implements SourceDispatcher<Segment> {
 
     @Override
     public void dispatch(Segment source) {
+        // 转换为存储类型的对象
         SegmentRecord segment = new SegmentRecord();
         segment.setSegmentId(source.getSegmentId());
         segment.setTraceId(source.getTraceId());
@@ -39,7 +40,7 @@ public class SegmentDispatcher implements SourceDispatcher<Segment> {
         segment.setDataBinary(source.getDataBinary());
         segment.setTimeBucket(source.getTimeBucket());
         segment.setTags(Tag.Util.toStringList(source.getTags()));
-
+        // 调用处理器 进行下一步
         RecordStreamProcessor.getInstance().in(segment);
     }
 }

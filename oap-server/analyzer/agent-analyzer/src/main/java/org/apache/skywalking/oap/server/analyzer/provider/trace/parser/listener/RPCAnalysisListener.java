@@ -58,9 +58,12 @@ import static org.apache.skywalking.oap.server.analyzer.provider.trace.parser.Sp
 @Slf4j
 @RequiredArgsConstructor
 public class RPCAnalysisListener extends CommonAnalysisListener implements EntryAnalysisListener, ExitAnalysisListener, LocalAnalysisListener {
+    // 呼入 存放一些rpc链路信息，调入的
     private final List<RPCTrafficSourceBuilder> callingInTraffic = new ArrayList<>(10);
+    // 呼出 存放一些rpc链路信息，对外调用的
     private final List<RPCTrafficSourceBuilder> callingOutTraffic = new ArrayList<>(10);
     private final List<DatabaseSlowStatementBuilder> dbSlowStatementBuilders = new ArrayList<>(10);
+    // 存放一些端点信息
     private final List<EndpointSourceBuilder> logicEndpointBuilders = new ArrayList<>(10);
     private final Gson gson = new Gson();
     private final SourceReceiver sourceReceiver;

@@ -61,7 +61,15 @@ public class TraceAnalyzer {
                 notifyFirstListener(spanObject, segmentObject);
             }
             // span的类型判断分支
-            // TODO sam 这个spanType具体的定义是什么
+            // 这个spanType具体的定义是什么
+            //    enum SpanType {
+            //    // Server side of RPC. Consumer side of MQ.
+            //    Entry = 0;
+            //    // Client side of RPC. Producer side of MQ.
+            //    Exit = 1;
+            //    // A common local code execution.
+            //    Local = 2;
+            //}
             if (SpanType.Exit.equals(spanObject.getSpanType())) {
                 notifyExitListener(spanObject, segmentObject);
             } else if (SpanType.Entry.equals(spanObject.getSpanType())) {
